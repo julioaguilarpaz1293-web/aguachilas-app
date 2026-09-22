@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aguachiles Cuentas</title>
+<style>
+:root{--bg:#000;--card:#161616;--line:#2a2a2a;--text:#f5f5f5;--muted:#8d8d8d;--green:#2fb36b;--amber:#f5a524;--red:#e5484d}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px 14px 40px;max-width:640px;margin:0 auto}
+h1{font-size:28px;font-weight:700;letter-spacing:-.5px}
+.sub{color:var(--muted);font-size:14px;margin-top:2px}
+.totals{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.tot{background:var(--card);border-radius:16px;padding:14px 16px}
+.tot b{display:block;font-size:28px;font-weight:700;letter-spacing:-.5px;margin-top:4px}
+.tot span{color:var(--muted);font-size:13px}
+.tot.money b{color:var(--green)}
+.tot.ok b{color:var(--green)}
+.tot.pend b{color:var(--amber)}
+.bar{height:8px;background:var(--line);border-radius:4px;margin-top:12px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green);width:0;transition:width .3s}
+h2{font-size:18px;margin:26px 0 12px}
+form{background:var(--card);border-radius:16px;padding:16px;display:grid;gap:12px}
+label{font-size:13px;color:var(--muted);display:grid;gap:6px}
+input,select{width:100%;padding:13px;border-radius:10px;border:1px solid var(--line);background:#000;color:var(--text);font-size:17px}
+input:focus,select:focus{outline:2px solid var(--green);border-color:transparent}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.line{display:flex;justify-content:space-between;align-items:center;font-size:15px;padding-top:4px}
+.line b{font-size:22px}
+.btn{width:100%;padding:15px;border:0;border-radius:12px;background:var(--green);color:#000;font-size:17px;font-weight:700}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--text);font-weight:500}
+.btn.danger{background:none;border:1px solid var(--red);color:var(--red);font-weight:500}
+.filters{display:flex;gap:6px;margin-bottom:10px}
+.filters button{flex:1;padding:10px 0;border-radius:20px;border:1px solid var(--line);background:none;color:var(--muted);font-size:14px}
+.filters button.on{background:var(--text);color:#000;border-color:var(--text);font-weight:600}
+.tablewrap{overflow-x:auto;background:var(--card);border-radius:16px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{color:var(--muted);font-weight:500;font-size:12px;text-align:left;padding:12px 8px;border-bottom:1px solid var(--line)}
+td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;white-space:nowrap}
+td.nombre{font-weight:600}
+td.nombre small{display:block;color:var(--muted);font-weight:400;font-size:12px;margin-top:2px}
+tr.done td.nombre{color:var(--muted);text-decoration:line-through}
+tfoot td{font-weight:700;border-top:1px solid var(--line)}
+.chk{width:30px;height:30px;border-radius:8px;border:2px solid var(--line);background:none;color:#000;font-size:18px;font-weight:700;display:grid;place-items:center}
+.chk.on{background:var(--green);border-color:var(--green)}
+.x{background:none;border:0;color:var(--muted);font-size:20px;padding:4px 6px}
+.empty{color:var(--muted);text-align:center;padding:24px 12px;font-size:15px}
+.tools{display:grid;gap:8px;margin-top:26px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:#000;padding:12px 18px;border-radius:24px;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<h1>Aguachiles</h1>
+<p class="sub">Lista de pedidos y entregas</p>
+
+<div class="totals">
+  <div class="tot"><span>Platos en la lista</span><b id="tPlatos">0</b></div>
+  <div class="tot money"><span>Total vendido</span><b id="tDinero">Q0</b></div>
+  <div class="tot ok"><span>Entregados</span><b id="tEnt">0</b></div>
+  <div class="tot pend"><span>Por entregar</span><b id="tPend">0</b></div>
+</div>
+<div class="bar"><i id="barra"></i></div>
+
+<h2>Agregar pedido</h2>
+<form id="f">
+  <label>Cliente<input id="cliente" list="clientes" placeholder="Nombre del cliente" autocomplete="off" required></label>
+  <datalist id="clientes"></datalist>
+  <label>Producto
+    <select id="producto">
+      <option value="Aguachile de puyazo">Aguachile de puyazo</option>
+      <option value="Aguachile Mar y Tierra">Aguachile Mar y Tierra</option>
+      <option value="Otro">Otro</option>
+    </select>
+  </label>
+  <div class="row">
+    <label>Cantidad<input id="cantidad" type="number" inputmode="decimal" min="0.5" step="0.5" value="1" required></label>
+    <label>Precio c/u (Q)<input id="precio" type="number" inputmode="decimal" min="0" step="0.01" value="150" required></label>
+  </div>
+  <div class="line"><span>Total de este pedido</span><b id="subtotal">Q150</b></div>
+  <button class="btn" type="submit">Agregar a la lista</button>
+</form>
+
+<h2>Listado</h2>
+<div class="filters" id="filters">
+  <button data-f="todos" class="on">Todos</button>
+  <button data-f="pend">Por entregar</button>
+  <button data-f="ent">Entregados</button>
+</div>
+<div class="tablewrap">
+  <table>
+    <thead><tr><th>Cliente</th><th class="num">Cant.</th><th class="num">Total</th><th>Entregado</th><th></th></tr></thead>
+    <tbody id="tbody"></tbody>
+    <tfoot id="tfoot"></tfoot>
+  </table>
+</div>
+
+<div class="tools">
+  <button class="btn ghost" id="exportar">Compartir listado</button>
+  <button class="btn ghost" id="respaldo">Hacer respaldo</button>
+  <button class="btn ghost" id="restaurar">Restaurar desde respaldo</button>
+  <button class="btn danger" id="nueva">Empezar lista nueva</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY='aguachiles_ventas_v1', PKEY='aguachiles_precios_v1', CKEY='aguachiles_clientes_v1';
+let ventas=[], precios={}, clientes=[], filtro='todos';
+const $=id=>document.getElementById(id);
+const r2=n=>Math.round(n*100)/100;
+const q=n=>'Q'+r2(n).toLocaleString('es-GT',{maximumFractionDigits:2});
+const num=n=>r2(n).toLocaleString('es-GT');
+function load(){
+  try{ventas=JSON.parse(localStorage.getItem(KEY))||[]}catch(e){ventas=[]}
+  try{precios=JSON.parse(localStorage.getItem(PKEY))||{}}catch(e){precios={}}
+  try{clientes=JSON.parse(localStorage.getItem(CKEY))||[]}catch(e){clientes=[]}
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(ventas));localStorage.setItem(PKEY,JSON.stringify(precios));localStorage.setItem(CKEY,JSON.stringify(clientes))}catch(e){toast('No se pudo guardar')}}
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2000)}
+const total=v=>v.cantidad*v.precio;
+const suma=(arr,f)=>arr.reduce((s,v)=>s+f(v),0);
+
+function render(){
+  const platos=suma(ventas,v=>v.cantidad), ent=suma(ventas.filter(v=>v.entregado),v=>v.cantidad);
+  $('tPlatos').textContent=num(platos);
+  $('tDinero').textContent=q(suma(ventas,total));
+  $('tEnt').textContent=num(ent);
+  $('tPend').textContent=num(platos-ent);
+  $('barra').style.width=platos?(ent/platos*100)+'%':'0';
+
+  const vs=ventas.filter(v=>filtro==='todos'||(filtro==='ent'?v.entregado:!v.entregado));
+  const tb=$('tbody');tb.innerHTML='';
+  if(!vs.length){
+    const msg={todos:'La lista está vacía. Agrega el primer pedido arriba.',pend:'No hay pedidos por entregar.',ent:'Todavía no has marcado entregas.'}[filtro];
+    tb.innerHTML=`<tr><td colspan="5" class="empty">${msg}</td></tr>`;
+  }
+  vs.forEach(v=>{
+    const tr=document.createElement('tr');if(v.entregado)tr.className='done';
+    const tdN=document.createElement('td');tdN.className='nombre';tdN.textContent=v.cliente;
+    const sm=document.createElement('small');sm.textContent=`${v.producto.replace('Aguachile ','')} · ${q(v.precio)} c/u`;tdN.append(sm);
+    const tdC=document.createElement('td');tdC.className='num';tdC.textContent=num(v.cantidad);
+    const tdT=document.createElement('td');tdT.className='num';tdT.textContent=q(total(v));
+    const tdE=document.createElement('td');
+    const b=document.createElement('button');b.className='chk'+(v.entregado?' on':'');b.textContent=v.entregado?'✓':'';
+    b.setAttribute('aria-label',v.entregado?'Marcar como no entregado':'Marcar como entregado');
+    b.onclick=()=>{v.entregado=!v.entregado;save();render();toast(v.entregado?`Entregado a ${v.cliente}`:`${v.cliente}: por entregar`)};
+    tdE.append(b);
+    const tdX=document.createElement('td');
+    const x=document.createElement('button');x.className='x';x.textContent='×';x.setAttribute('aria-label','Borrar pedido');
+    x.onclick=()=>{if(confirm(`¿Borrar el pedido de ${v.cliente}?`)){ventas=ventas.filter(o=>o.id!==v.id);save();render();toast('Pedido borrado')}};
+    tdX.append(x);
+    tr.append(tdN,tdC,tdT,tdE,tdX);tb.append(tr);
+  });
+  $('tfoot').innerHTML=vs.length?`<tr><td>Total</td><td class="num">${num(suma(vs,v=>v.cantidad))}</td><td class="num">${q(suma(vs,total))}</td><td colspan="2"></td></tr>`:'';
+
+  const dl=$('clientes');dl.innerHTML='';
+  clientes.forEach(n=>{const o=document.createElement('option');o.value=n;dl.append(o)});
+}
+function subtotal(){$('subtotal').textContent=q((parseFloat($('cantidad').value)||0)*(parseFloat($('precio').value)||0))}
+
+$('filters').onclick=e=>{const b=e.target.closest('button');if(!b)return;filtro=b.dataset.f;document.querySelectorAll('#filters button').forEach(x=>x.classList.toggle('on',x===b));render()};
+$('producto').onchange=()=>{const p=precios[$('producto').value];if(p!=null)$('precio').value=p;subtotal()};
+$('cantidad').oninput=subtotal;$('precio').oninput=subtotal;
+$('f').onsubmit=e=>{
+  e.preventDefault();
+  const v={id:Date.now(),cliente:$('cliente').value.trim(),producto:$('producto').value,cantidad:parseFloat($('cantidad').value),precio:parseFloat($('precio').value),entregado:false};
+  if(!v.cliente||!(v.cantidad>0)||isNaN(v.precio)){toast('Revisa cliente, cantidad y precio');return}
+  precios[v.producto]=v.precio;
+  if(!clientes.includes(v.cliente)){clientes.push(v.cliente);clientes.sort((a,b)=>a.localeCompare(b))}
+  ventas.push(v);save();
+  $('cliente').value='';$('cantidad').value=1;subtotal();render();toast(`Agregado: ${v.cliente}, ${q(total(v))}`);
+};
+
+function compartir(titulo,texto){
+  if(window.Android&&Android.share){Android.share(titulo,texto)}
+  else if(navigator.share){navigator.share({title:titulo,text:texto}).catch(()=>{})}
+  else{navigator.clipboard&&navigator.clipboard.writeText(texto);toast('Copiado al portapapeles')}
+}
+$('exportar').onclick=()=>{
+  if(!ventas.length){toast('La lista está vacía');return}
+  let t='Pedidos de aguachiles\n\n';
+  ventas.forEach((v,i)=>{t+=`${i+1}. ${v.cliente}: ${num(v.cantidad)} ${v.producto.replace('Aguachile ','')} = ${q(total(v))} ${v.entregado?'✅ entregado':'⏳ pendiente'}\n`});
+  const platos=suma(ventas,v=>v.cantidad),ent=suma(ventas.filter(v=>v.entregado),v=>v.cantidad);
+  t+=`\nTotal: ${num(platos)} platos, ${q(suma(ventas,total))}\nEntregados: ${num(ent)} · Por entregar: ${num(platos-ent)}`;
+  compartir('Listado de pedidos',t);
+};
+$('respaldo').onclick=()=>{compartir('Respaldo Aguachiles','AGUACHILES-RESPALDO:'+JSON.stringify({ventas,precios,clientes}));toast('Guarda este respaldo en WhatsApp o Drive')};
+$('restaurar').onclick=()=>{
+  const t=prompt('Pega aquí el texto completo del respaldo:');if(!t)return;
+  try{const d=JSON.parse(t.trim().replace(/^AGUACHILES-RESPALDO:/,''));if(!Array.isArray(d.ventas))throw 0;
+    if(confirm(`El respaldo tiene ${d.ventas.length} pedidos y reemplazará la lista actual. ¿Continuar?`)){ventas=d.ventas.map(v=>({entregado:false,...v}));precios=d.precios||{};clientes=d.clientes||[...new Set(ventas.map(v=>v.cliente))];save();render();toast('Respaldo restaurado')}}
+  catch(e){toast('Ese texto no es un respaldo válido')}
+};
+$('nueva').onclick=()=>{
+  if(!ventas.length){toast('La lista ya está vacía');return}
+  if(confirm('Se borrarán todos los pedidos de la lista (los nombres de clientes y precios se conservan). Si quieres guardar esta lista, primero toca "Compartir listado" o "Hacer respaldo". ¿Empezar lista nueva?')){ventas=[];save();render();toast('Empezaste una lista nueva')}
+};
+window.goBack=()=>false;
+
+load();
+ventas.forEach(v=>{if(v.entregado===undefined)v.entregado=false;if(!clientes.includes(v.cliente))clientes.push(v.cliente)});
+const p0=precios[$('producto').value];if(p0!=null)$('precio').value=p0;
+subtotal();render();
+</script>
+</body>
+</html>

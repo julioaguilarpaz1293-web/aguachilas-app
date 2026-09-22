@@ -1,0 +1,12 @@
+CÓMO OBTENER EL APK (gratis, desde el teléfono o una computadora)
+
+1. Crea una cuenta en github.com (si no tienes).
+2. Crea un repositorio nuevo (botón "New"), por ejemplo "aguachiles-app".
+3. Descomprime este ZIP y sube TODAS las carpetas y archivos al repositorio
+   (botón "Add file" > "Upload files"). Importante: incluye la carpeta .github
+4. Ve a la pestaña "Actions". Se ejecuta solo "Construir APK" (tarda ~3-5 min).
+5. Cuando tenga palomita verde, entra a esa ejecución y descarga "aguachiles-apk"
+   (viene en ZIP; adentro está app-debug.apk).
+6. Pasa el APK a tu Android, ábrelo y permite "instalar apps de origen desconocido".
+
+Si tienes Android Studio: abre esta carpeta y usa Build > Build APK.
