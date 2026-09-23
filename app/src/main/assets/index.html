@@ -50,6 +50,15 @@ tfoot td{font-weight:700;border-top:1px solid var(--line)}
 .tools{display:grid;gap:8px;margin-top:26px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:#000;padding:12px 18px;border-radius:24px;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
 .toast.show{opacity:1}
+td.nombre{word-break:break-word}
+.x{color:var(--red);font-size:24px;width:36px;height:36px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:20px;z-index:10}
+.modal.show{display:flex}
+.modal .box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;width:100%;max-width:420px;display:grid;gap:14px}
+.modal p{font-size:16px;line-height:1.4}
+.modal textarea{width:100%;min-height:120px;padding:10px;border-radius:10px;border:1px solid var(--line);background:#000;color:var(--text);font-size:14px}
+.modal .mbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal .btn.danger{background:var(--red);color:#fff;border:0;font-weight:700}
 </style>
 </head>
 <body>
@@ -104,6 +113,13 @@ tfoot td{font-weight:700;border-top:1px solid var(--line)}
   <button class="btn danger" id="nueva">Empezar lista nueva</button>
 </div>
 <div class="toast" id="toast"></div>
+<div class="modal" id="modal">
+  <div class="box">
+    <p id="mMsg"></p>
+    <textarea id="mTxt" placeholder="Pega aquí el respaldo"></textarea>
+    <div class="mbtns"><button class="btn ghost" id="mNo">Cancelar</button><button class="btn" id="mSi">Sí</button></div>
+  </div>
+</div>
 
 <script>
 const KEY='aguachiles_ventas_v1', PKEY='aguachiles_precios_v1', CKEY='aguachiles_clientes_v1';
@@ -119,6 +135,21 @@ function load(){
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(ventas));localStorage.setItem(PKEY,JSON.stringify(precios));localStorage.setItem(CKEY,JSON.stringify(clientes))}catch(e){toast('No se pudo guardar')}}
 function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2000)}
+// Ventana de confirmación propia: confirm()/prompt() no siempre funcionan dentro del WebView
+let cerrarDialogo=null;
+function dialogo(msg,{ok='Sí',peligro=false,texto=false}={}){
+  return new Promise(res=>{
+    $('mMsg').textContent=msg;
+    $('mTxt').style.display=texto?'block':'none';$('mTxt').value='';
+    $('mSi').textContent=ok;$('mSi').className='btn'+(peligro?' danger':'');
+    $('modal').classList.add('show');
+    const fin=val=>{$('modal').classList.remove('show');cerrarDialogo=null;res(val)};
+    cerrarDialogo=()=>fin(texto?null:false);
+    $('mSi').onclick=()=>fin(texto?$('mTxt').value:true);
+    $('mNo').onclick=cerrarDialogo;
+    if(texto)$('mTxt').focus();
+  });
+}
 const total=v=>v.cantidad*v.precio;
 const suma=(arr,f)=>arr.reduce((s,v)=>s+f(v),0);
 
@@ -149,7 +180,7 @@ function render(){
     tdE.append(b);
     const tdX=document.createElement('td');
     const x=document.createElement('button');x.className='x';x.textContent='×';x.setAttribute('aria-label','Borrar pedido');
-    x.onclick=()=>{if(confirm(`¿Borrar el pedido de ${v.cliente}?`)){ventas=ventas.filter(o=>o.id!==v.id);save();render();toast('Pedido borrado')}};
+    x.onclick=async()=>{if(await dialogo(`¿Borrar el pedido de ${v.cliente} (${num(v.cantidad)} · ${q(total(v))})?`,{ok:'Borrar',peligro:true})){ventas=ventas.filter(o=>o.id!==v.id);save();render();toast('Pedido borrado')}};
     tdX.append(x);
     tr.append(tdN,tdC,tdT,tdE,tdX);tb.append(tr);
   });
@@ -187,17 +218,18 @@ $('exportar').onclick=()=>{
   compartir('Listado de pedidos',t);
 };
 $('respaldo').onclick=()=>{compartir('Respaldo Aguachiles','AGUACHILES-RESPALDO:'+JSON.stringify({ventas,precios,clientes}));toast('Guarda este respaldo en WhatsApp o Drive')};
-$('restaurar').onclick=()=>{
-  const t=prompt('Pega aquí el texto completo del respaldo:');if(!t)return;
-  try{const d=JSON.parse(t.trim().replace(/^AGUACHILES-RESPALDO:/,''));if(!Array.isArray(d.ventas))throw 0;
-    if(confirm(`El respaldo tiene ${d.ventas.length} pedidos y reemplazará la lista actual. ¿Continuar?`)){ventas=d.ventas.map(v=>({entregado:false,...v}));precios=d.precios||{};clientes=d.clientes||[...new Set(ventas.map(v=>v.cliente))];save();render();toast('Respaldo restaurado')}}
-  catch(e){toast('Ese texto no es un respaldo válido')}
+$('restaurar').onclick=async()=>{
+  const t=await dialogo('Pega aquí el texto completo del respaldo:',{ok:'Restaurar',texto:true});if(!t)return;
+  let d;
+  try{d=JSON.parse(t.trim().replace(/^AGUACHILES-RESPALDO:/,''));if(!Array.isArray(d.ventas))throw 0}
+  catch(e){toast('Ese texto no es un respaldo válido');return}
+  if(await dialogo(`El respaldo tiene ${d.ventas.length} pedidos y reemplazará la lista actual. ¿Continuar?`,{ok:'Reemplazar',peligro:true})){ventas=d.ventas.map(v=>({entregado:false,...v}));precios=d.precios||{};clientes=d.clientes||[...new Set(ventas.map(v=>v.cliente))];save();render();toast('Respaldo restaurado')}
 };
-$('nueva').onclick=()=>{
+$('nueva').onclick=async()=>{
   if(!ventas.length){toast('La lista ya está vacía');return}
-  if(confirm('Se borrarán todos los pedidos de la lista (los nombres de clientes y precios se conservan). Si quieres guardar esta lista, primero toca "Compartir listado" o "Hacer respaldo". ¿Empezar lista nueva?')){ventas=[];save();render();toast('Empezaste una lista nueva')}
+  if(await dialogo('Se borrarán todos los pedidos de la lista (los nombres de clientes y precios se conservan). Si quieres guardar esta lista, primero toca "Compartir listado" o "Hacer respaldo". ¿Empezar lista nueva?',{ok:'Borrar todo',peligro:true})){ventas=[];save();render();toast('Empezaste una lista nueva')}
 };
-window.goBack=()=>false;
+window.goBack=()=>{if(cerrarDialogo){cerrarDialogo();return true}return false};
 
 load();
 ventas.forEach(v=>{if(v.entregado===undefined)v.entregado=false;if(!clientes.includes(v.cliente))clientes.push(v.cliente)});
